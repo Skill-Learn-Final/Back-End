@@ -1,15 +1,15 @@
 const express = require("express");
 const passport = require("passport");
-const LocalStrategy = require("passport-local");
+const AuthStrategy = require("passport-local");
 const crypto = require("crypto");
 const db = require("../db");
 
 const router = express.Router();
 
-// Configure LocalStrategy
+// Configure AuthStrategy
 
 passport.use(
-  new LocalStrategy(function verify(username, password, cb) {
+  new AuthStrategy(function (username, password, cb) {
     db.get(
       "SELECT * FROM users WHERE username = ?",
       [username],
@@ -46,21 +46,50 @@ passport.use(
   })
 );
 
+// Configure Passport to persist user information
 
-// POST route for login
-// router.post("/login", (req, res) => {
-//   passport.authenticate('local', {
-//     successMessage: "Success", 
-//     failureMessage: "Failure"
-//   })
-// });
+passport.serializeUser(function (user, cb) {
+  process.nextTick(function () {
+    cb(null, { id: user.id, username: user.username });
+  });
+});
 
-router.post('/login', passport.authenticate('local', {
-    successMessage: 'we have made it',
-    failureMessage: 'ayiii'
-  }));
+passport.deserializeUser(function (user, cb) {
+  process.nextTick(function () {
+    return cb(null, user);
+  });
+});
 
-// POST route for register
-router.post("/register", (req, res) => {});
+// Handle Local Login
 
+router.post(
+  "/login",
+  passport.authenticate("local", { session: true }),
+  function (req, res) {
+    res.json({ username: req.user.username });
+  }
+);
+
+// Handle Local Register
+router.post('/register', (req, res, next) =>{
+    var salt = crypto.randomBytes(16);
+    crypto.pbkdf2(req.body.password, salt, 310000, 32, 'sha256', function(err, hashedPassword) {
+      if (err) { return next(err); }
+      db.run('INSERT INTO users (username, hashed_password, salt) VALUES (?, ?, ?)', [
+        req.body.username,
+        hashedPassword,
+        salt
+      ], function(err) {
+        if (err) { return next(err); }
+        var user = {
+          id: this.lastID,
+          username: req.body.username
+        };
+        req.login(user, function(err) {
+          if (err) { return next(err); }
+          res.json('registered');
+        });
+      });
+    });
+  });
 module.exports = router;
