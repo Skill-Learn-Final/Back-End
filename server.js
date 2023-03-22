@@ -1,3 +1,6 @@
+// Load in the environment file
+require('dotenv').config()
+
 const express = require('express')
 const app = express()
 const path = require('path')
@@ -23,12 +26,12 @@ app.use(express.json({extended: false}))
 // setup session
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
-    secret: 'keyboard cat',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: new SQLiteStore({db: 'sessions.db', dir: './db'})
 }));
-app.use(passport.authenticate('session'));  
+app.use(passport.authenticate('session'))
 
 
 // Handle Auth related routes

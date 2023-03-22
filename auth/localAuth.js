@@ -71,7 +71,7 @@ router.post(
 );
 
 // Handle Local Register
-router.post('/register', (req, res, next) =>{
+router.post('/register', (req, res, next) => {
     var salt = crypto.randomBytes(16);
     crypto.pbkdf2(req.body.password, salt, 310000, 32, 'sha256', function(err, hashedPassword) {
       if (err) { return next(err); }
