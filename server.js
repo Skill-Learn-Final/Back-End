@@ -18,6 +18,7 @@ const logout = require('./auth/logout')
 // import file to setup db
 const dbSetup = require('./db');
 const passport = require('passport');
+const { checkRole } = require('./middleware/authenticate')
 dbSetup
 
 app.set('view-engine', 'ejs')
@@ -39,8 +40,8 @@ app.use('/local', localAuth)
 app.use('/google', googleAuth)
 app.use('/logout', logout)
 
-app.get(['/', '/home'], (req, res) => {
-    res.send("This is the landing page!!")
+app.get(['/', '/home'], checkRole("bob") , (req, res) => {
+    res.send("This is the landing page");
 })
 
 app.listen(3000)

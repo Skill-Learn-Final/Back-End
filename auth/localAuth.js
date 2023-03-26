@@ -6,6 +6,7 @@ const db = require("../db");
 
 const router = express.Router();
 
+
 // Configure AuthStrategy
 
 passport.use(
