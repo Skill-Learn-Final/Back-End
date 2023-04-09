@@ -11,6 +11,10 @@ db.serialize(function() {
   db.run("CREATE TABLE IF NOT EXISTS users ( \
     id INTEGER PRIMARY KEY, \
     username TEXT UNIQUE, \
+    email TEXT UNIQUE, \
+    firstName TEXT , \
+    lastName TEXT , \
+    role TEXT , \
     hashed_password BLOB, \
     salt BLOB \
   )");
@@ -24,8 +28,12 @@ db.serialize(function() {
   
   // create an initial user (username: alice, password: letmein)
   var salt = crypto.randomBytes(16);
-  db.run('INSERT OR IGNORE INTO users (username, hashed_password, salt) VALUES (?, ?, ?)', [
+  db.run('INSERT OR IGNORE INTO users (username, email, firstName, lastName, role, hashed_password, salt) VALUES (?, ?, ?, ?, ?, ?, ?)', [
+    'alice123',
+    'alice@smith.com',
     'alice',
+    'smith',
+    'admin',
     crypto.pbkdf2Sync('letmein', salt, 310000, 32, 'sha256'),
     salt
   ]);
