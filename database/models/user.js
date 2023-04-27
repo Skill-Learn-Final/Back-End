@@ -8,6 +8,12 @@ module.exports = (sequelize, DataTypes) => {
         as: "roles",
         onDelete: "CASCADE",
       });
+
+      User.hasMany(models.Course, {
+        foreignKey: "creatorUserId",
+        as: "createdCourses",
+        onDelete: "CASCADE",
+      });
     }
   }
   User.init(
@@ -15,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
       id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
-        primaryKey: true
+        primaryKey: true,
       },
       firstName: {
         type: DataTypes.STRING,
