@@ -10,9 +10,12 @@
   "license": "ISC",
   "dependencies": {
     "connect-sqlite3": "^0.9.13",
+    "cors": "^2.8.5",
     "ejs": "^3.1.9",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
+    "jsonwebtoken": "^9.0.0",
+    "nodemailer": "^6.9.2",
     "passport": "^0.6.0",
     "passport-http": "^0.3.0",
     "passport-local": "^1.0.0",

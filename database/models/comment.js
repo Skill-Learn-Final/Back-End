@@ -8,11 +8,11 @@ module.exports = (sequelize, DataTypes) => {
         as: "user",
         onDelete: "CASCADE",
       });
-      Comment.belongsTo(models.Course, {
-        foreignKey: "courseId",
-        as: "course",
-        onDelete: "CASCADE",
-      });
+      // Comment.belongsTo(models.Course, {
+      //   foreignKey: "courseId",
+      //   as: "course",
+      //   onDelete: "CASCADE",
+      // });
     }
   }
   Comment.init(

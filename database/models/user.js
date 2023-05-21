@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
       id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
-        primaryKey: true
+        primaryKey: true,
       },
       firstName: {
         type: DataTypes.STRING,
@@ -30,10 +30,9 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         unique: true,
       },
-      username: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
+      emailConfirmed: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
       },
       balance: {
         type: DataTypes.DOUBLE,

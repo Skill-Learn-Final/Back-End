@@ -8,11 +8,11 @@ module.exports = (sequelize, DataTypes) => {
         as: "user",
         onDelete: "CASCADE",
       });
-      Rating.belongsTo(models.Course, {
-        foreignKey: "courseId",
-        as: "course",
-        onDelete: "CASCADE",
-      });
+      // Rating.belongsTo(models.Course, {
+      //   foreignKey: "courseId",
+      //   as: "course",
+      //   onDelete: "CASCADE",
+      // });
     }
   }
   Rating.init(
