@@ -5,6 +5,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const path = require("path");
+const cookieParser = require("cookie-parser");
 // const jwt = require("jsonwebtoken");
 
 // import dependencies for sessions
@@ -28,30 +29,30 @@ const { checkRole } = require("./middleware/authenticate");
 app.set("view-engine", "ejs");
 app.use(express.json({ extended: false }));
 
-// setup session
-// app.use(express.static(path.join(__dirname, "public")));
-// app.use(
-//   session({
-//     secret: process.env.SESSION_SECRET,
-//     resave: false,
-//     saveUninitialized: false,
-//     store: new SQLiteStore({ db: "sessions.db", dir: "./db" }),
-//   })
-// );
-// app.use(passport.authenticate("session"));
-
 // Setup CORS
 
-app.use(cors());
+app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
+// setup cookie parser
+app.use(cookieParser());
+
+app.use(function (req, res, next) {
+  res.header("Content-Type", "application/json;charset=UTF-8");
+  res.header("Access-Control-Allow-Credentials", true);
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  next();
+});
 
 // Routes
 
 // Handle Auth related routes
 app.use("/api/local", localAuth);
 app.use("/google", googleAuth);
-app.use("/logout", logout);
+// app.use("/logout", logout);
 
-app.get(["/", "/home"], checkRole("admin"), (req, res) => {
+app.get(["/", "/home"], (req, res) => {
   res.send("This is the landing page");
 });
 

@@ -15,6 +15,7 @@ const {
   sendPasswordResetEmail,
   sendEmailConfirmEmail,
 } = require("../middleware/sendEmail");
+const { authenticate } = require("../middleware/authenticate");
 
 const router = express.Router();
 
@@ -108,8 +109,28 @@ router.post("/login", async (req, res, next) => {
             where: { userId: possibleUser.id },
           });
           if (role.length === 1) {
-            possibleUser.setDataValue("role", role[0].role);
-            res.send(possibleUser);
+            // possibleUser.setDataValue("role", role[0].role);
+            // res.send(possibleUser);
+            const userInfo = {
+              id: possibleUser.id,
+              balance: possibleUser.balance,
+              role: role,
+            };
+            const secret = process.env.JWT_SECRET + possibleUser.passwordHash;
+            const payload = {
+              id: possibleUser.id,
+              email: possibleUser.email,
+              role: role[0].role,
+            };
+
+            const token = jwt.sign(payload, secret, { expiresIn: "1d" });
+            res
+              .cookie("access_token", token, {
+                httpOnly: false,
+                secure: process.env.NODE_ENV === "production",
+              })
+              .status(200)
+              .send(userInfo);
           } else {
             res.send("More than one role! You need to choose");
           }
@@ -117,7 +138,7 @@ router.post("/login", async (req, res, next) => {
           // res.send(role[0].role);
         } catch (err) {
           console.log(err.message);
-          // res.send(err.message);
+          // return res.send(err.message);
         }
       }
     );
@@ -169,6 +190,7 @@ router.post("/register", async (req, res, next) => {
         const payload = {
           email: createdUser.email,
           id: createdUser.id,
+          role: req.body.role,
         };
         const token = jwt.sign(payload, secret, { expiresIn: "1d" });
         const link = `http://localhost:5000/api/local/confirm/${createdUser.id}/${token}`;
@@ -176,7 +198,7 @@ router.post("/register", async (req, res, next) => {
           .then((response) => res.send(response.message))
           .catch((error) => res.send(error.message));
       } catch (err) {
-        res.json(err);
+        return res.status(409).json(err);
       }
     }
   );
@@ -192,6 +214,7 @@ router.post("/reset_password/send_email", async (req, res, next) => {
     };
     const token = jwt.sign(payload, secret, { expiresIn: "2m" });
     const link = `http://localhost:3000/reset_password/${possibleUser.id}/${token}`;
+    // res.send(link);
     sendPasswordResetEmail("eliayele74@gmail.com", possibleUser.firstName, link)
       .then((response) => res.send(response.message))
       .catch((error) => console.log(error.message));
@@ -205,6 +228,7 @@ router.post("/reset_password/changePassword", async (req, res, next) => {
     const secret = process.env.JWT_SECRET + possibleUser.passwordHash;
     try {
       jwt.verify(req.body.token, secret);
+
       var salt = crypto.randomBytes(16);
       crypto.pbkdf2(
         req.body.password,
@@ -217,36 +241,81 @@ router.post("/reset_password/changePassword", async (req, res, next) => {
             return next(err);
           }
           try {
-            possibleUser.passwordHash = hashedPassword;
-            possibleUser.passwordSalt = salt;
-            await possibleUser.save();
-
-            res.json(possibleUser);
+            await possibleUser.update({ passwordHash: hashedPassword });
+            await possibleUser.update({ passwordSalt: salt });
+            // await possibleUser.save();
+            // console.log("here");
+            res.status(200).send("success");
           } catch (err) {
             res.json(err);
           }
+          // res.redirect("http://localhost:3000/login");
         }
       );
     } catch (error) {
-      console.log(error.message);
+      return res.status(401).json(error.message);
     }
   }
 });
 
 router.get("/confirm/:id/:token", async (req, res, next) => {
   const confirmUser = await User.findOne({ where: { id: req.params.id } });
-  if (confirmUser.emailConfirmed === true) {
-    res.redirect("http://localhost:3000/live_classes");
-  } else {
-    const secret = process.env.JWT_SECRET + confirmUser.passwordHash;
-    try {
-      jwt.verify(req.params.token, secret);
-      await confirmUser.update({ emailConfirmed: true });
-    } catch (err) {
-      console.log(err.message);
+  if (confirmUser) {
+    if (confirmUser.emailConfirmed === true) {
+      res.redirect("http://localhost:3000/login");
+    } else {
+      const secret = process.env.JWT_SECRET + confirmUser.passwordHash;
+      try {
+        jwt.verify(req.params.token, secret);
+        await confirmUser.update({ emailConfirmed: true });
+      } catch (err) {
+        console.log(err.message);
+      }
+      res.redirect("http://localhost:3000/login");
     }
-    res.redirect("http://localhost:3000/login");
+  } else {
+    res.status(500).send("Link Expired");
   }
 });
+
+router.post("/tryAuth", authenticate("creator"), (req, res, next) => {
+  res.send("Status");
+});
+
+// ============= This is for purchasing currency, will move to serparate file later on =======================
+
+router.post(
+  "/buy_currency",
+  authenticate("learner"),
+  async (req, res, next) => {
+    const possibleUser = req.user;
+    crypto.pbkdf2(
+      req.body.password,
+      possibleUser.passwordSalt,
+      310000,
+      32,
+      "sha256",
+      async function (err, hashedPassword) {
+        if (err) {
+          return err.message;
+        }
+        if (
+          !crypto.timingSafeEqual(possibleUser.passwordHash, hashedPassword)
+        ) {
+          res.status(401).json("Incorrect Password");
+        } else {
+          const newBalance = possibleUser.balance + req.body.balance;
+          await possibleUser.update({ balance: newBalance });
+          res
+            .status(200)
+            .send({
+              message: "Balance Successfully Purchased",
+              balance: newBalance,
+            });
+        }
+      }
+    );
+  }
+);
 
 module.exports = router;
