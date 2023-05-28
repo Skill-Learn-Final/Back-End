@@ -5,7 +5,6 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const path = require("path");
-var cors = require("cors");
 const cookieParser = require("cookie-parser");
 // const jwt = require("jsonwebtoken");
 
@@ -17,7 +16,7 @@ const cookieParser = require("cookie-parser");
 // import the different routes for Auth
 const localAuth = require("./routes/localAuth");
 const googleAuth = require("./routes/googleAuth");
-const logout = require("./routes/logout");
+// const logout = require("./routes/logout");
 const course = require("./routes/course");
 const category = require("./routes/category");
 
@@ -54,12 +53,14 @@ app.use(function (req, res, next) {
 
 console.log("routes started: ");
 
+app.use(express.static("public"));
+
 // Handle Auth related routes
 app.use("/api/local", localAuth);
 app.use("/google", googleAuth);
-app.use("/logout", logout);
-app.use("/courses", course);
-app.use("/categories", category);
+// app.use("/logout", logout);
+app.use("/api/courses", course);
+app.use("/api/categories", category);
 
 console.log("routes registered: ");
 // app.use("/logout", logout);
