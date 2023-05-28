@@ -14,6 +14,12 @@ module.exports = (sequelize, DataTypes) => {
         as: "creator",
         onDelete: "CASCADE",
       });
+
+      Course.belongsToMany(models.CourseCategory, {
+        through: models.CourseToCourseCategory,
+        as: "categories",
+        foreignKey: "courseId",
+      });
     }
   }
   Course.init(
@@ -33,19 +39,33 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DOUBLE,
         allowNull: false,
       },
-      courseCategories: {
-        type: DataTypes.ARRAY(DataTypes.UUID),
-        defaultValue: [],
-      },
       creatorUserId: {
         type: DataTypes.UUID,
         allowNull: false,
       },
       coursePosterLink: DataTypes.STRING,
+      isPublished: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      difficulty: {
+        type: DataTypes.ENUM("Beginner", "Intermediate", "Advanced"),
+        allowNull: false,
+      },
+      isReviewed: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
     },
     {
       sequelize,
       modelName: "Course",
+      indexes: [
+        {
+          unique: true,
+          fields: ["creatorUserId", "title"],
+        },
+      ],
     }
   );
   return Course;

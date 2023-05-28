@@ -14,6 +14,10 @@ module.exports = {
       },
       chapterId: {
         type: Sequelize.UUID,
+        references: {
+          model: "Chapters",
+          key: "id",
+        },
       },
       videoLink: {
         type: Sequelize.STRING,

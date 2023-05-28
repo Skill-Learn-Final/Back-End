@@ -12,6 +12,10 @@ module.exports = {
       userId: {
         type: Sequelize.UUID,
         allowNull: false,
+        references: {
+          model: "Users",
+          key: "id",
+        },
       },
       role: {
         type: Sequelize.ENUM("admin", "creator", "learner", "reviewer"),

@@ -20,12 +20,24 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DOUBLE,
       },
-      courseCategories: {
-        defaultValue: [],
-        type: Sequelize.ARRAY(Sequelize.UUID),
+      difficulty: {
+        type: Sequelize.ENUM("Beginner", "Intermediate", "Advanced"),
+        allowNull: false,
+      },
+      isPublished: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+      },
+      isReviewed: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
       },
       creatorUserId: {
         type: Sequelize.UUID,
+        references: {
+          model: "Users",
+          key: "id",
+        },
       },
       coursePosterLink: {
         type: Sequelize.STRING,

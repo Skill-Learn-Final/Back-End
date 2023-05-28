@@ -17,7 +17,12 @@ module.exports = (sequelize, DataTypes) => {
   }
   Lesson.init(
     {
-      id: DataTypes.UUID,
+      id: {
+        allowNull: false,
+        primaryKey: true,
+        defaultValue: DataTypes.UUIDV4,
+        type: DataTypes.UUID,
+      },
       title: DataTypes.STRING,
       chapterId: DataTypes.UUID,
       videoLink: DataTypes.STRING,

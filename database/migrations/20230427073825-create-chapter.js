@@ -18,6 +18,10 @@ module.exports = {
       },
       courseId: {
         type: Sequelize.UUID,
+        references: {
+          model: "Courses",
+          key: "id",
+        },
       },
       createdAt: {
         allowNull: false,
