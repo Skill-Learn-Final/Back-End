@@ -3,12 +3,6 @@ const passport = require("passport");
 const AuthStrategy = require("passport-local");
 const crypto = require("crypto");
 const db = require("../database/models");
-const { DataTypes } = require("sequelize");
-const User = require("../database/models/user")(db.sequelize, DataTypes);
-const UserRole = require("../database/models/userrole")(
-  db.sequelize,
-  DataTypes
-);
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const {
@@ -16,6 +10,9 @@ const {
   sendEmailConfirmEmail,
 } = require("../middleware/sendEmail");
 const { authenticate } = require("../middleware/authenticate");
+const { StatusCodes } = require("http-status-codes");
+const { Roles } = require("../utils/constants");
+const e = require("express");
 
 const router = express.Router();
 
@@ -82,69 +79,62 @@ passport.use(
 // // Handle Local Login
 
 router.post("/login", async (req, res, next) => {
-  const possibleUser = await User.findOne({ where: { email: req.body.email } });
-  if (possibleUser) {
-    crypto.pbkdf2(
-      req.body.password,
-      possibleUser.passwordSalt,
-      310000,
-      32,
-      "sha256",
-      async function (err, hashedPassword) {
-        if (err) {
-          return err.message;
-        }
-        if (
-          !crypto.timingSafeEqual(possibleUser.passwordHash, hashedPassword)
-        ) {
-          res.status(401).json("Incorrect Email or Password");
-        }
-        if (possibleUser.emailConfirmed === false) {
-          res
-            .status(401)
-            .send("You need to confirm your email before continuing ");
-        }
-        try {
-          const role = await UserRole.findAll({
-            where: { userId: possibleUser.id },
-          });
-          if (role.length === 1) {
-            // possibleUser.setDataValue("role", role[0].role);
-            // res.send(possibleUser);
-            const userInfo = {
-              id: possibleUser.id,
-              balance: possibleUser.balance,
-              role: role,
-            };
-            const secret = process.env.JWT_SECRET + possibleUser.passwordHash;
-            const payload = {
-              id: possibleUser.id,
-              email: possibleUser.email,
-              role: role[0].role,
-            };
-
-            const token = jwt.sign(payload, secret, { expiresIn: "1d" });
-            res
-              .cookie("access_token", token, {
-                httpOnly: false,
-                secure: process.env.NODE_ENV === "production",
-              })
-              .status(200)
-              .send(userInfo);
-          } else {
-            res.send("More than one role! You need to choose");
+  try {
+    const possibleUser = await db.User.findOne({
+      where: { email: req.body.email },
+      include: ["roles"],
+    });
+    if (possibleUser) {
+      crypto.pbkdf2(
+        req.body.password,
+        possibleUser.passwordSalt,
+        310000,
+        32,
+        "sha256",
+        async function (err, hashedPassword) {
+          if (err) {
+            return err.message;
           }
+          if (
+            !crypto.timingSafeEqual(possibleUser.passwordHash, hashedPassword)
+          ) {
+            res
+              .status(StatusCodes.UNAUTHORIZED)
+              .json("Incorrect Email or Password");
+          }
+          if (possibleUser.emailConfirmed === false) {
+            res
+              .status(StatusCodes.UNAUTHORIZED)
+              .send("You need to confirm your email before continuing ");
+          }
+          const { id, balance, email, firstName, lastName, roles } =
+            possibleUser;
+          const payload = {
+            id,
+            balance,
+            email,
+            firstName,
+            lastName,
+            roles: roles.map((r) => r.role),
+          };
+          const secret = process.env.JWT_SECRET + possibleUser.passwordHash;
 
-          // res.send(role[0].role);
-        } catch (err) {
-          console.log(err.message);
-          // return res.send(err.message);
+          const token = jwt.sign(payload, secret, { expiresIn: "1d" });
+          res
+            .cookie("access_token", token, {
+              httpOnly: false,
+              secure: process.env.NODE_ENV === "production",
+            })
+            .status(200)
+            .send(payload);
         }
-      }
-    );
-  } else {
-    res.status(404).json("We couldn't find an account with the provided Email");
-  }
+      );
+    } else {
+      res
+        .status(StatusCodes.NOT_FOUND)
+        .json("We couldn't find an account with the provided Email");
+    }
+  } catch (error) {}
 });
 
 // router.post(
@@ -170,7 +160,7 @@ router.post("/register", async (req, res, next) => {
         return next(err);
       }
       try {
-        const createdUser = await User.create({
+        const createdUser = await db.User.create({
           // username: req.body.username,
           email: req.body.email,
           firstName: req.body.fullName.split(" ")[0],
@@ -178,13 +168,15 @@ router.post("/register", async (req, res, next) => {
           passwordHash: hashedPassword,
           passwordSalt: salt,
         });
-        await createdUser.save();
+        // await createdUser.save();
 
-        const userRole = await UserRole.create({
+        const userRole = await db.UserRole.create({
           userId: createdUser.id,
-          role: req.body.role,
+          role: req.body.role ?? Roles.LEARNER,
         });
-        await userRole.save();
+
+        // await userRole.save();
+        await createdUser.addRoles(userRole);
 
         const secret = process.env.JWT_SECRET + createdUser.passwordHash;
         const payload = {
@@ -196,8 +188,11 @@ router.post("/register", async (req, res, next) => {
         const link = `http://localhost:5000/api/local/confirm/${createdUser.id}/${token}`;
         sendEmailConfirmEmail(createdUser.email, createdUser.firstName, link)
           .then((response) => res.send(response.message))
-          .catch((error) => res.send(error.message));
+          .catch((error) => {
+            res.send(error.message);
+          });
       } catch (err) {
+        console.log(err);
         return res.status(409).json(err);
       }
     }
@@ -205,7 +200,9 @@ router.post("/register", async (req, res, next) => {
 });
 
 router.post("/reset_password/send_email", async (req, res, next) => {
-  const possibleUser = await User.findOne({ where: { email: req.body.email } });
+  const possibleUser = await db.User.findOne({
+    where: { email: req.body.email },
+  });
   if (possibleUser) {
     const secret = process.env.JWT_SECRET + possibleUser.passwordHash;
     const payload = {
@@ -223,7 +220,7 @@ router.post("/reset_password/send_email", async (req, res, next) => {
 });
 
 router.post("/reset_password/changePassword", async (req, res, next) => {
-  const possibleUser = await User.findOne({ where: { id: req.body.id } });
+  const possibleUser = await db.User.findOne({ where: { id: req.body.id } });
   if (possibleUser) {
     const secret = process.env.JWT_SECRET + possibleUser.passwordHash;
     try {
@@ -259,7 +256,7 @@ router.post("/reset_password/changePassword", async (req, res, next) => {
 });
 
 router.get("/confirm/:id/:token", async (req, res, next) => {
-  const confirmUser = await User.findOne({ where: { id: req.params.id } });
+  const confirmUser = await db.User.findOne({ where: { id: req.params.id } });
   if (confirmUser) {
     if (confirmUser.emailConfirmed === true) {
       res.redirect("http://localhost:3000/login");
@@ -306,12 +303,10 @@ router.post(
         } else {
           const newBalance = possibleUser.balance + req.body.balance;
           await possibleUser.update({ balance: newBalance });
-          res
-            .status(200)
-            .send({
-              message: "Balance Successfully Purchased",
-              balance: newBalance,
-            });
+          res.status(200).send({
+            message: "Balance Successfully Purchased",
+            balance: newBalance,
+          });
         }
       }
     );
