@@ -28,7 +28,7 @@ const category = require("./routes/category");
 // Import some middleware
 const { checkRole } = require("./middleware/authenticate");
 
-app.use(cors());
+// app.use(cors());
 
 app.set("view-engine", "ejs");
 app.use(express.json({ extended: false }));
