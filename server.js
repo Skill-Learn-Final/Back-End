@@ -19,6 +19,7 @@ const googleAuth = require("./routes/googleAuth");
 // const logout = require("./routes/logout");
 const course = require("./routes/course");
 const category = require("./routes/category");
+const userRouter = require("./routes/user");
 
 // import file to setup db
 // const dbSetup = require("./db");
@@ -61,6 +62,7 @@ app.use("/google", googleAuth);
 // app.use("/logout", logout);
 app.use("/api/courses", course);
 app.use("/api/categories", category);
+app.use("/api/users", userRouter);
 
 console.log("routes registered: ");
 // app.use("/logout", logout);

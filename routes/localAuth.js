@@ -12,7 +12,6 @@ const {
 const { authenticate } = require("../middleware/authenticate");
 const { StatusCodes } = require("http-status-codes");
 const { Roles } = require("../utils/constants");
-const e = require("express");
 
 const router = express.Router();
 
@@ -185,7 +184,7 @@ router.post("/register", async (req, res, next) => {
           role: req.body.role,
         };
         const token = jwt.sign(payload, secret, { expiresIn: "1d" });
-        const link = `http://localhost:5000/api/local/confirm/${createdUser.id}/${token}`;
+        const link = `http://localhost:8080/api/local/confirm/${createdUser.id}/${token}`;
         sendEmailConfirmEmail(createdUser.email, createdUser.firstName, link)
           .then((response) => res.send(response.message))
           .catch((error) => {
@@ -238,8 +237,11 @@ router.post("/reset_password/changePassword", async (req, res, next) => {
             return next(err);
           }
           try {
-            await possibleUser.update({ passwordHash: hashedPassword });
-            await possibleUser.update({ passwordSalt: salt });
+            await possibleUser.update({
+              passwordHash: hashedPassword,
+              passwordSalt: salt,
+              emailConfirmed: true,
+            });
             // await possibleUser.save();
             // console.log("here");
             res.status(200).send("success");
