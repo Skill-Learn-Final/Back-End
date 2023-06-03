@@ -74,6 +74,30 @@ const updateCourse = async (req, res, next) => {
   }
 };
 
+const assignReviewer = async (req, res, next) => {
+  try {
+    const { courseId } = req.params;
+    const { reviewerId } = req.body;
+
+    const course = await db.Course.update(
+      {
+        reviewerId,
+      },
+      {
+        where: { id: courseId },
+        returning: true,
+        plain: true,
+      }
+    );
+    res.status(200).json({
+      success: true,
+      data: course[1].dataValues,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const deleteCourse = async (req, res, next) => {
   try {
     const { courseId } = req.params;
@@ -107,8 +131,22 @@ const getCourse = async (req, res, next) => {
 
 const getCourseList = async (req, res, next) => {
   try {
+    const { status } = req.query;
+
+    const filter =
+      status === "published"
+        ? { isPublished: true }
+        : status === "review-requested"
+        ? { isPublished: true, isReviewed: false }
+        : status === "rejected"
+        ? { isPublished: true, isReviewed: true, isApproved: false }
+        : status === "draft"
+        ? { isPublished: false }
+        : {};
+
     const courses = await db.Course.findAll({
       include: ["chapters", "categories"],
+      where: filter,
     });
     res.status(200).json({
       success: true,
@@ -116,6 +154,43 @@ const getCourseList = async (req, res, next) => {
     });
   } catch (error) {
     console.log(error);
+    next(error);
+  }
+};
+
+const getCourseListUnderReview = async (req, res, next) => {
+  try {
+    const courses = await db.Course.findAll({
+      include: ["reviewer", "creator", "categories"],
+      where: { isReviewed: false, isPublished: true },
+    });
+    res.status(200).json({
+      success: true,
+      data: courses,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const publishCourse = async (req, res, next) => {
+  try {
+    const { courseId } = req.params;
+    const course = await db.Course.update(
+      {
+        isPublished: true,
+      },
+      {
+        where: { id: courseId },
+        returning: true,
+        plain: true,
+      }
+    );
+    res.status(200).json({
+      success: true,
+      data: course[1].dataValues,
+    });
+  } catch (error) {
     next(error);
   }
 };
@@ -317,9 +392,12 @@ const getLessonList = async (req, res, next) => {
 module.exports = {
   createCourse,
   updateCourse,
+  assignReviewer,
   deleteCourse,
   getCourse,
   getCourseList,
+  getCourseListUnderReview,
+  publishCourse,
   createChapter,
   updateChapter,
   deleteChapter,

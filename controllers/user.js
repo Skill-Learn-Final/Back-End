@@ -65,6 +65,8 @@ const createUser = (req, res, next) => {
 
 const getUserList = async (req, res, next) => {
   try {
+    const { role } = req.query;
+
     const users = await db.User.findAll({
       attributes: { exclude: ["passwordHash", "passwordSalt"] },
       include: [
@@ -72,6 +74,7 @@ const getUserList = async (req, res, next) => {
           model: db.UserRole,
           as: "roles",
           attributes: ["role"],
+          where: role ? { role } : {},
         },
       ],
     });

@@ -15,6 +15,12 @@ module.exports = (sequelize, DataTypes) => {
         onDelete: "CASCADE",
       });
 
+      Course.belongsTo(models.User, {
+        foreignKey: "reviewerId",
+        as: "reviewer",
+        onDelete: "SET NULL",
+      });
+
       Course.belongsToMany(models.CourseCategory, {
         through: models.CourseToCourseCategory,
         as: "categories",
@@ -55,6 +61,15 @@ module.exports = (sequelize, DataTypes) => {
       isReviewed: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
+      },
+      reviewerId: {
+        type: DataTypes.UUID,
+        defaultValue: null,
+      },
+      isApproved: { type: DataTypes.BOOLEAN, defaultValue: false },
+      rejectionReasons: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        defaultValue: [],
       },
     },
     {

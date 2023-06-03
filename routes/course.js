@@ -16,6 +16,9 @@ const {
   getLesson,
   deleteLesson,
   updateLesson,
+  publishCourse,
+  getCourseListUnderReview,
+  assignReviewer,
 } = require("../controllers/course");
 
 const router = express.Router();
@@ -54,9 +57,12 @@ const upload = multer({ storage, fileFilter });
 
 router.post("/", upload.single("coursePoster"), createCourse);
 router.get("/", getCourseList);
+router.get("/under-review", getCourseListUnderReview);
 router.get("/:courseId", getCourse);
 router.delete("/:courseId", deleteCourse);
 router.put("/:courseId", upload.single("coursePoster"), updateCourse);
+router.put("/:courseId/assign-reviewer", assignReviewer);
+router.put("/:courseId/publish", publishCourse);
 
 router.post("/:courseId/chapters", createChapter);
 router.get("/:courseId/chapters", getChapterList);
