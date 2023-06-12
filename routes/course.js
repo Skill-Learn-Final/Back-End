@@ -24,10 +24,17 @@ const {
   rejectCourse,
 } = require("../controllers/course");
 const upload = require("../middleware/upload");
+const { authenticate } = require("../middleware/authenticate");
+const { Roles } = require("../utils/constants");
 
 const router = express.Router();
 
-router.post("/", upload.single("coursePoster"), createCourse);
+router.post(
+  "/",
+  authenticate(Roles.CREATOR),
+  upload.single("coursePoster"),
+  createCourse
+);
 router.get("/", getCourseList);
 router.get("/under-review", getCourseListUnderReview);
 router.get("/byReviewer", getCourseListsByReviewer);

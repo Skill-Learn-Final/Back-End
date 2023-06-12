@@ -8,6 +8,7 @@ const fs = require("fs");
 const createCourse = async (req, res, next) => {
   try {
     let { title, description, price, courseCategories, difficulty } = req.body;
+    let { id: userId } = req.user;
 
     if (courseCategories) {
       courseCategories = JSON.parse(courseCategories);
@@ -21,7 +22,7 @@ const createCourse = async (req, res, next) => {
       price,
       difficulty,
       coursePosterLink: `${req.protocol}://${req.hostname}:8080/uploads/${req.file.filename}`,
-      creatorUserId: "14c3e128-10fb-43be-93a8-78ae3f569fe7",
+      creatorUserId: userId,
     });
 
     courseCategories.forEach(async (c) => {
