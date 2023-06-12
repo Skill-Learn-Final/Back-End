@@ -121,9 +121,10 @@ router.post("/login", async (req, res, next) => {
           const token = jwt.sign(payload, secret, { expiresIn: "1d" });
           res
             .cookie("access_token", token, {
-              httpOnly: false,
+              httpOnly: true,
               secure: process.env.NODE_ENV === "production",
             })
+            .cookie("userId", payload.id)
             .status(200)
             .send(payload);
         }

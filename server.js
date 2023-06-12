@@ -17,7 +17,7 @@ const mime = require("mime");
 // import the different routes for Auth
 const localAuth = require("./routes/localAuth");
 const googleAuth = require("./routes/googleAuth");
-// const logout = require("./routes/logout");
+const logout = require("./routes/logout");
 const course = require("./routes/course");
 const category = require("./routes/category");
 const userRouter = require("./routes/user");
@@ -67,7 +67,7 @@ app.use(
 // Handle Auth related routes
 app.use("/api/local", localAuth);
 app.use("/google", googleAuth);
-// app.use("/logout", logout);
+app.use("/api/logout", logout);
 app.use("/api/courses", course);
 app.use("/api/categories", category);
 app.use("/api/users", userRouter);

@@ -1,15 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { authUser } = require("../middleware/authenticate");
+// const { authUser } = require("../middleware/authenticate");
 
-router.get("/", authUser, (req, res, next) => {
-  req.logout(function (err) {
-    if (err) {
-      return next(err);
-    }
-    res.status(200);
-    res.send("OK");
-  });
+router.get("/", (req, res, next) => {
+  res.clearCookie("access_token", { httpOnly: true });
+  res.end();
 });
 
 module.exports = router;
