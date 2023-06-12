@@ -14,6 +14,12 @@ module.exports = (sequelize, DataTypes) => {
         as: "createdCourses",
         onDelete: "CASCADE",
       });
+
+      User.hasOne(models.ProfileVerification, {
+        foreignKey: "creatorId",
+        as: "profileVerification",
+        onDelete: "CASCADE",
+      });
     }
   }
   User.init(
