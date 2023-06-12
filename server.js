@@ -6,6 +6,7 @@ const app = express();
 const cors = require("cors");
 const path = require("path");
 const cookieParser = require("cookie-parser");
+const mime = require("mime");
 // const jwt = require("jsonwebtoken");
 
 // import dependencies for sessions
@@ -54,7 +55,14 @@ app.use(function (req, res, next) {
 
 console.log("routes started: ");
 
-app.use(express.static("public"));
+app.use(
+  express.static("public", {
+    setHeaders: (res, path) => {
+      const mimeType = mime.getType(path);
+      res.header("Content-Type", mimeType);
+    },
+  })
+);
 
 // Handle Auth related routes
 app.use("/api/local", localAuth);

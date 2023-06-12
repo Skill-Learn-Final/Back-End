@@ -1,5 +1,4 @@
 const express = require("express");
-const multer = require("multer");
 const {
   createCourse,
   getCourseList,
@@ -19,50 +18,27 @@ const {
   publishCourse,
   getCourseListUnderReview,
   assignReviewer,
+  streamVideo,
+  getCourseListsByReviewer,
+  approveCourse,
+  rejectCourse,
 } = require("../controllers/course");
+const upload = require("../middleware/upload");
 
 const router = express.Router();
-const storage = multer.diskStorage({
-  destination: "./public/uploads/",
-  filename: function (req, file, cb) {
-    cb(
-      null,
-      file.fieldname + "-" + Date.now() + "." + file.mimetype.split("/")[1]
-    );
-  },
-});
-const fileFilter = (req, file, cb) => {
-  if (file.fieldname === "coursePoster" || file.fieldname === "thumbnail") {
-    if (
-      file.mimetype.split("/")[1] === "jpeg" ||
-      file.mimetype.split("/")[1] === "png" ||
-      file.mimetype.split("/")[1] === "jpg"
-    ) {
-      cb(null, true);
-    } else {
-      cb(new Error("Image uploaded is not of type jpg/jpeg or png"), false);
-    }
-  } else if (file.fieldname === "video") {
-    if (file.mimetype.split("/")[1] === "mp4") {
-      cb(null, true);
-    } else {
-      cb(new Error("Video uploaded is not of type mp4"), false);
-    }
-  }
-
-  cb(null, true);
-};
-
-const upload = multer({ storage, fileFilter });
 
 router.post("/", upload.single("coursePoster"), createCourse);
 router.get("/", getCourseList);
 router.get("/under-review", getCourseListUnderReview);
+router.get("/byReviewer", getCourseListsByReviewer);
+router.get("/stream/:lessonId", streamVideo);
 router.get("/:courseId", getCourse);
 router.delete("/:courseId", deleteCourse);
 router.put("/:courseId", upload.single("coursePoster"), updateCourse);
 router.put("/:courseId/assign-reviewer", assignReviewer);
 router.put("/:courseId/publish", publishCourse);
+router.put("/:courseId/approve", approveCourse);
+router.put("/:courseId/reject", rejectCourse);
 
 router.post("/:courseId/chapters", createChapter);
 router.get("/:courseId/chapters", getChapterList);

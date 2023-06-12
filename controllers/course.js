@@ -1,6 +1,8 @@
 const { StatusCodes } = require("http-status-codes");
 const db = require("../database/models");
-const { DataTypes, UniqueConstraintError } = require("sequelize");
+const { DataTypes, UniqueConstraintError, Op } = require("sequelize");
+const path = require("path");
+const fs = require("fs");
 
 // Course
 const createCourse = async (req, res, next) => {
@@ -113,12 +115,74 @@ const deleteCourse = async (req, res, next) => {
   }
 };
 
+const approveCourse = async (req, res, next) => {
+  try {
+    const { courseId } = req.params;
+    const course = await db.Course.update(
+      {
+        isApproved: true,
+        isReviewed: true,
+        rejectionReasons: [],
+      },
+      {
+        where: { id: courseId },
+        returning: true,
+        plain: true,
+      }
+    );
+    res.status(200).json({
+      success: true,
+      data: course[1].dataValues,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const rejectCourse = async (req, res, next) => {
+  try {
+    const { courseId } = req.params;
+    const { rejectionReasons } = req.body;
+    const course = await db.Course.update(
+      {
+        isApproved: false,
+        isReviewed: true,
+        rejectionReasons,
+      },
+      {
+        where: { id: courseId },
+        returning: true,
+        plain: true,
+      }
+    );
+    res.status(200).json({
+      success: true,
+      data: course[1].dataValues,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getCourse = async (req, res, next) => {
   try {
     const { courseId } = req.params;
     const course = await db.Course.findOne({
       where: { id: courseId },
-      include: ["chapters", "categories"],
+      include: [
+        {
+          model: db.Chapter,
+          as: "chapters",
+          include: [
+            {
+              model: db.Lesson,
+              as: "lessons",
+            },
+          ],
+        },
+        "categories",
+        "creator",
+      ],
     });
     res.status(200).json({
       success: true,
@@ -139,7 +203,7 @@ const getCourseList = async (req, res, next) => {
         : status === "review-requested"
         ? { isPublished: true, isReviewed: false }
         : status === "rejected"
-        ? { isPublished: true, isReviewed: true, isApproved: false }
+        ? { isReviewed: true, isApproved: false }
         : status === "draft"
         ? { isPublished: false }
         : {};
@@ -163,6 +227,27 @@ const getCourseListUnderReview = async (req, res, next) => {
     const courses = await db.Course.findAll({
       include: ["reviewer", "creator", "categories"],
       where: { isReviewed: false, isPublished: true },
+    });
+    res.status(200).json({
+      success: true,
+      data: courses,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCourseListsByReviewer = async (req, res, next) => {
+  try {
+    const courses = await db.Course.findAll({
+      include: ["reviewer", "creator", "categories"],
+      where: {
+        reviewerId: {
+          [Op.ne]: null,
+        },
+        isReviewed: false,
+        isPublished: true,
+      },
     });
     res.status(200).json({
       success: true,
@@ -298,7 +383,7 @@ const createLesson = async (req, res, next) => {
       duration,
       chapterId,
       thumbnailLink: `${req.protocol}://${req.hostname}:8080/uploads/${thumbnail[0].filename}`,
-      videoLink: `${req.protocol}://${req.hostname}:8080/uploads/${video[0].filename}`,
+      videoLink: `videos/${video[0].filename}`,
     });
     res.status(201).json({
       success: true,
@@ -389,6 +474,50 @@ const getLessonList = async (req, res, next) => {
   }
 };
 
+const streamVideo = async (req, res, next) => {
+  try {
+    const { lessonId } = req.params;
+    const lesson = await db.Lesson.findOne({ where: { id: lessonId } });
+
+    console.log({ lessonId });
+    if (!lesson) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: "Lesson not found",
+      });
+    }
+
+    const range = req.headers.range;
+    if (!range) res.status(400).send("error");
+
+    const videoPath = lesson.videoLink;
+
+    const videoSize = fs.statSync(videoPath).size;
+
+    console.log(videoSize);
+
+    const chunkSize = 10 ** 6;
+    // bytes=64165
+    const start = Number(range.replace(/\D/g, ""));
+    const end = Math.min(start + chunkSize, videoSize - 1);
+    const contentLength = end - start + 1;
+    const headers = {
+      "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+      "Accept-Ranges": "bytes",
+      "Content-Length": contentLength,
+      "Content-Type": "video/mp4",
+    };
+
+    res.writeHead(206, headers);
+
+    const videoStream = fs.createReadStream(videoPath, { start, end });
+
+    videoStream.pipe(res);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
 module.exports = {
   createCourse,
   updateCourse,
@@ -397,6 +526,7 @@ module.exports = {
   getCourse,
   getCourseList,
   getCourseListUnderReview,
+  getCourseListsByReviewer,
   publishCourse,
   createChapter,
   updateChapter,
@@ -408,4 +538,7 @@ module.exports = {
   deleteLesson,
   getLesson,
   getLessonList,
+  streamVideo,
+  approveCourse,
+  rejectCourse,
 };

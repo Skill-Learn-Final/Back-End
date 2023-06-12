@@ -104,8 +104,178 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
+const profileVerificationRequest = async (req, res, next) => {
+  try {
+    const { professionalTitle, address } = req.body;
+    const { governmentId, proofDocument } = req.files;
+
+    const request = await db.ProfileVerification.create({
+      creatorId: "639ae82a-a775-49e0-8b26-9e247d73628f",
+      professionalTitle,
+      address,
+      governmentIdLink: `${req.protocol}://${req.hostname}:8080/uploads/${governmentId[0].filename}`,
+      proofDocumentLink: `${req.protocol}://${req.hostname}:8080/uploads/${proofDocument[0].filename}`,
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+const getProfileVerificationRequest = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const request = await db.ProfileVerification.findOne({
+      where: { id },
+      include: [
+        {
+          model: db.User,
+          as: "creator",
+          attributes: ["firstName", "lastName", "email"],
+        },
+      ],
+    });
+    if (!request) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: "Request not found",
+      });
+    }
+    res.status(StatusCodes.OK).json(request);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+const getProfileVerificationRequestByUser = async (req, res, next) => {
+  try {
+    const { creatorId } = req.query;
+
+    if (!creatorId) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "creatorId is required",
+      });
+    }
+
+    const request = await db.ProfileVerification.findOne({
+      where: { creatorId },
+      include: [
+        {
+          model: db.User,
+          as: "creator",
+          attributes: ["firstName", "lastName", "email"],
+        },
+      ],
+    });
+
+    res.status(StatusCodes.OK).json(request);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+const approveProfileVerificationRequest = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const request = await db.ProfileVerification.findOne({
+      where: { id },
+    });
+    if (!request) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: "Request not found",
+      });
+    }
+
+    if (request.isReviewed) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Request already reviewed",
+      });
+    }
+
+    request.isApproved = true;
+    request.isReviewed = true;
+    await request.save();
+    res.status(StatusCodes.OK).json({
+      message: "Request approved successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+const rejectProfileVerificationRequest = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const request = await db.ProfileVerification.findOne({
+      where: { id },
+    });
+    if (!request) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: "Request not found",
+      });
+    }
+
+    if (request.isReviewed) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Request already reviewed",
+      });
+    }
+
+    request.isApproved = false;
+    request.isReviewed = true;
+    await request.save();
+
+    res.status(StatusCodes.OK).json({
+      message: "Request rejected successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+const getProfileVerificationRequestList = async (req, res, next) => {
+  try {
+    let filter = {};
+    const { status } = req.query;
+
+    if (status === "approved") {
+      filter = { isApproved: true };
+    } else if (status === "rejected") {
+      filter = { isApproved: false, isReviewed: true };
+    } else if (status === "pending") {
+      filter = { isReviewed: false };
+    } else {
+      filter = {};
+    }
+
+    const requests = await db.ProfileVerification.findAll({
+      where: filter,
+      include: [
+        {
+          model: db.User,
+          as: "creator",
+          attributes: ["firstName", "lastName", "email"],
+        },
+      ],
+    });
+    res.status(StatusCodes.OK).json(requests);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
 module.exports = {
   createUser,
   getUserList,
   deleteUser,
+  profileVerificationRequest,
+  getProfileVerificationRequest,
+  approveProfileVerificationRequest,
+  rejectProfileVerificationRequest,
+  getProfileVerificationRequestList,
+  getProfileVerificationRequestByUser,
 };
