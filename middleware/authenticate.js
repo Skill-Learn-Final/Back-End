@@ -1,20 +1,18 @@
 const { getUserRole } = require("./getUserRole");
 const jwt = require("jsonwebtoken");
 const db = require("../database/models");
-const { DataTypes } = require("sequelize");
-const User = require("../database/models/user")(db.sequelize, DataTypes);
 
 function authenticate(role) {
   return async (req, res, next) => {
-    const possibleUser = await User.findOne({
-      where: { email: req.body.email },
+    const possibleUser = await db.User.findOne({
+      where: { id: req.cookies.userId },
     });
 
     if (possibleUser) {
       const secret = process.env.JWT_SECRET + possibleUser.passwordHash;
       try {
         const data = jwt.verify(req.cookies.access_token, secret);
-        if (data.role !== role) {
+        if (!data.roles.includes(role)) {
           return res.status(401).send("Forbidden");
         }
         req.user = possibleUser;
