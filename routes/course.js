@@ -52,11 +52,11 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({ storage, fileFilter });
 
+router.put("/:courseId", upload.single("coursePoster"), updateCourse);
 router.post("/", upload.single("coursePoster"), createCourse);
 router.get("/", getCourseList);
 router.get("/:courseId", getCourse);
 router.delete("/:courseId", deleteCourse);
-router.put("/:courseId", upload.single("coursePoster"), updateCourse);
 
 router.post("/:courseId/chapters", createChapter);
 router.get("/:courseId/chapters", getChapterList);

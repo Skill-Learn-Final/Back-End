@@ -19,6 +19,7 @@ const googleAuth = require("./routes/googleAuth");
 // const logout = require("./routes/logout");
 const course = require("./routes/course");
 const category = require("./routes/category");
+const user = require("./routes/user");
 
 // import file to setup db
 // const dbSetup = require("./db");
@@ -28,7 +29,7 @@ const category = require("./routes/category");
 // Import some middleware
 const { checkRole } = require("./middleware/authenticate");
 
-app.use(cors());
+// app.use(cors());
 
 app.set("view-engine", "ejs");
 app.use(express.json({ extended: false }));
@@ -53,10 +54,11 @@ app.use(function (req, res, next) {
 
 console.log("routes started: ");
 
+
 app.use(express.static("public"));
 
 // Handle Auth related routes
-app.use("/api/local", localAuth);
+app.use("/api/local", user);
 app.use("/google", googleAuth);
 // app.use("/logout", logout);
 app.use("/api/courses", course);
