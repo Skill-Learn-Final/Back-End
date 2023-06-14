@@ -30,6 +30,12 @@ const userRouter = require("./routes/user");
 // Import some middleware
 const { checkRole } = require("./middleware/authenticate");
 
+const setHeaders = (res, path) => {
+  const mimeType = mime.getType(path);
+  res.setHeader("Content-Type", mimeType);
+  res.setHeader("Content-Disposition", "attachment");
+};
+
 // app.use(cors());
 
 app.set("view-engine", "ejs");
@@ -57,10 +63,7 @@ console.log("routes started: ");
 
 app.use(
   express.static("public", {
-    setHeaders: (res, path) => {
-      const mimeType = mime.getType(path);
-      res.header("Content-Type", mimeType);
-    },
+    setHeaders,
   })
 );
 

@@ -27,6 +27,8 @@ const upload = require("../middleware/upload");
 const { authenticate } = require("../middleware/authenticate");
 const { Roles } = require("../utils/constants");
 
+const commentRouter = require("./comment");
+
 const router = express.Router();
 
 router.post(
@@ -42,6 +44,9 @@ router.get("/stream/:lessonId", streamVideo);
 router.get("/:courseId", getCourse);
 router.delete("/:courseId", deleteCourse);
 router.put("/:courseId", upload.single("coursePoster"), updateCourse);
+
+router.use("/:courseId/comments", commentRouter);
+
 router.put("/:courseId/assign-reviewer", assignReviewer);
 router.put("/:courseId/publish", publishCourse);
 router.put("/:courseId/approve", approveCourse);
