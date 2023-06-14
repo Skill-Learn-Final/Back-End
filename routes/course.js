@@ -28,6 +28,7 @@ const { authenticate } = require("../middleware/authenticate");
 const { Roles } = require("../utils/constants");
 
 const commentRouter = require("./comment");
+const ratingRouter = require("./rating");
 
 const router = express.Router();
 
@@ -46,6 +47,7 @@ router.delete("/:courseId", deleteCourse);
 router.put("/:courseId", upload.single("coursePoster"), updateCourse);
 
 router.use("/:courseId/comments", commentRouter);
+router.use("/:courseId/ratings", ratingRouter);
 
 router.put("/:courseId/assign-reviewer", assignReviewer);
 router.put("/:courseId/publish", publishCourse);

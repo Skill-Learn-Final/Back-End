@@ -8,11 +8,12 @@ module.exports = (sequelize, DataTypes) => {
         as: "user",
         onDelete: "CASCADE",
       });
-      // Rating.belongsTo(models.Course, {
-      //   foreignKey: "courseId",
-      //   as: "course",
-      //   onDelete: "CASCADE",
-      // });
+
+      Rating.belongsTo(models.Course, {
+        foreignKey: "courseId",
+        as: "course",
+        onDelete: "CASCADE",
+      });
     }
   }
   Rating.init(
@@ -25,16 +26,24 @@ module.exports = (sequelize, DataTypes) => {
       userId: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+          model: "Users",
+          key: "id",
+        },
       },
       courseId: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+          model: "Courses",
+          key: "id",
+        },
       },
-      ratingScore: {
+      score: {
         type: DataTypes.DOUBLE,
         allowNull: false,
       },
-      ratingMessage: {
+      message: {
         type: DataTypes.STRING,
         allowNull: false,
       },
