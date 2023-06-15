@@ -102,12 +102,20 @@ router.post("/login", async (req, res, next) => {
               .json("Incorrect Email or Password");
           }
           if (possibleUser.emailConfirmed === false) {
-            res
-              .status(StatusCodes.UNAUTHORIZED)
-              .send("You need to confirm your email before continuing ");
+            res.status(StatusCodes.UNAUTHORIZED).send({
+              message: "You need to confirm your email before continuing ",
+              id: possibleUser.id,
+            });
           }
-          const { id, balance, email, firstName, lastName, roles } =
-            possibleUser;
+          const {
+            id,
+            balance,
+            email,
+            firstName,
+            lastName,
+            roles,
+            profilePicture,
+          } = possibleUser;
           const payload = {
             id,
             balance,
@@ -115,6 +123,7 @@ router.post("/login", async (req, res, next) => {
             firstName,
             lastName,
             roles: roles.map((r) => r.role),
+            profilePicture,
           };
           const secret = process.env.JWT_SECRET + possibleUser.passwordHash;
 
