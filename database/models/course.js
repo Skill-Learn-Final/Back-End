@@ -26,6 +26,11 @@ module.exports = (sequelize, DataTypes) => {
         as: "categories",
         foreignKey: "courseId",
       });
+
+      Course.hasMany(models.Rating, {
+        as: "ratings",
+        foreignKey: "courseId",
+      });
     }
   }
   Course.init(
