@@ -22,6 +22,7 @@ const {
   getCourseListsByReviewer,
   approveCourse,
   rejectCourse,
+  getAllLiveCourses,
 } = require("../controllers/course");
 const upload = require("../middleware/upload");
 const { authenticate } = require("../middleware/authenticate");
@@ -39,6 +40,7 @@ router.post(
   createCourse
 );
 router.get("/", getCourseList);
+router.get("/live-courses", getAllLiveCourses);
 router.get("/under-review", getCourseListUnderReview);
 router.get("/byReviewer", getCourseListsByReviewer);
 router.get("/stream/:lessonId", streamVideo);

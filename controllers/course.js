@@ -1,6 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
 const db = require("../database/models");
-const { DataTypes, UniqueConstraintError, Op } = require("sequelize");
+const { DataTypes, UniqueConstraintError, Op, where } = require("sequelize");
 const path = require("path");
 const fs = require("fs");
 
@@ -561,11 +561,47 @@ const streamVideo = async (req, res, next) => {
   }
 };
 
-// live courses list with filter
+// live courses
 
-const getCoursesWithFilter = (req, res, next) => {
+const getAllLiveCourses = async (req, res, next) => {
   try {
-  } catch (err) {}
+    const { category, difficulty, query } = req.query;
+
+    const courses = await db.Course.findAll({
+      where: {
+        isPublished: true,
+        isReviewed: true,
+        isApproved: true,
+        ...(difficulty && { difficulty }),
+        ...(query && {
+          [Op.or]: [
+            { title: { [Op.iLike]: `%${query}%` } },
+            { description: { [Op.iLike]: `%${query}%` } },
+          ],
+        }),
+      },
+      include: [
+        "chapters",
+        {
+          model: db.CourseCategory,
+          as: "categories",
+          where: {
+            ...(category && { category: { [Op.like]: category } }),
+          },
+        },
+      ],
+    });
+
+    // console.log(courses);
+
+    res.status(200).json({
+      success: true,
+      data: courses,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Something went wrong");
+  }
 };
 
 module.exports = {
@@ -591,4 +627,5 @@ module.exports = {
   streamVideo,
   approveCourse,
   rejectCourse,
+  getAllLiveCourses,
 };
