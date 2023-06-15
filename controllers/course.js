@@ -7,14 +7,16 @@ const fs = require("fs");
 // Course
 const createCourse = async (req, res, next) => {
   try {
-    let { title, description, price, courseCategories, difficulty } = req.body;
+    let {
+      title,
+      description,
+      price,
+      courseCategories,
+      difficulty,
+      estimatedCompletionTime,
+      language,
+    } = req.body;
     let { id: userId } = req.user;
-
-    if (courseCategories) {
-      courseCategories = JSON.parse(courseCategories);
-    } else {
-      courseCategories = [];
-    }
 
     const course = await db.Course.create({
       title,
@@ -23,15 +25,25 @@ const createCourse = async (req, res, next) => {
       difficulty,
       coursePosterLink: `${req.protocol}://${req.hostname}:8080/uploads/${req.file.filename}`,
       creatorUserId: userId,
+      estimatedCompletionTime,
+      language,
     });
 
-    courseCategories.forEach(async (c) => {
-      const category = await db.CourseCategory.findOne({
-        where: { id: c.id },
+    if (courseCategories) {
+      const courseCategoriesArray = JSON.parse(courseCategories);
+
+      console.log({ courseCategoriesArray });
+
+      const courseCategoriesMapped = await db.CourseCategory.findAll({
+        where: {
+          category: {
+            [Op.in]: courseCategoriesArray,
+          },
+        },
       });
 
-      course.addCategories(category);
-    });
+      await course.setCategories(courseCategoriesMapped);
+    }
 
     res.status(201).json({
       success: true,
@@ -52,11 +64,22 @@ const createCourse = async (req, res, next) => {
 
 const updateCourse = async (req, res, next) => {
   try {
-    const { title, description, price } = req.body;
+    const {
+      title,
+      description,
+      price,
+      courseCategories,
+      difficulty,
+      estimatedCompletionTime,
+      language,
+    } = req.body;
     const courseUpdate = {
       title,
       description,
       price,
+      difficulty,
+      estimatedCompletionTime,
+      language,
     };
     if (req.file) {
       courseUpdate.coursePosterLink = `${req.protocol}://${req.hostname}:8080/uploads/${req.file.filename}`;
@@ -68,6 +91,23 @@ const updateCourse = async (req, res, next) => {
       returning: true,
       plain: true,
     });
+
+    if (courseCategories) {
+      const courseCategoriesArray = JSON.parse(courseCategories);
+
+      console.log({ courseCategoriesArray });
+
+      const courseCategoriesMapped = await db.CourseCategory.findAll({
+        where: {
+          category: {
+            [Op.in]: courseCategoriesArray,
+          },
+        },
+      });
+
+      await course[1].setCategories(courseCategoriesMapped);
+    }
+
     res.status(200).json({
       success: true,
       data: course[1].dataValues,
@@ -112,6 +152,7 @@ const deleteCourse = async (req, res, next) => {
       data: course,
     });
   } catch (error) {
+    console.log(error);
     next(error);
   }
 };
@@ -170,6 +211,7 @@ const getCourse = async (req, res, next) => {
     const { courseId } = req.params;
     const course = await db.Course.findOne({
       where: { id: courseId },
+      order: [[{ model: db.Chapter, as: "chapters" }, "createdAt", "ASC"]],
       include: [
         {
           model: db.Chapter,
@@ -517,6 +559,13 @@ const streamVideo = async (req, res, next) => {
     console.log(error);
     next(error);
   }
+};
+
+// live courses list with filter
+
+const getCoursesWithFilter = (req, res, next) => {
+  try {
+  } catch (err) {}
 };
 
 module.exports = {

@@ -22,6 +22,7 @@ module.exports = {
           model: "Courses",
           key: "id",
         },
+        onDelete: "CASCADE",
       },
     });
   },

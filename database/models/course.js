@@ -25,6 +25,7 @@ module.exports = (sequelize, DataTypes) => {
         through: models.CourseToCourseCategory,
         as: "categories",
         foreignKey: "courseId",
+        onDelete: "CASCADE",
       });
 
       Course.hasMany(models.Rating, {
@@ -75,6 +76,16 @@ module.exports = (sequelize, DataTypes) => {
       rejectionReasons: {
         type: DataTypes.ARRAY(DataTypes.STRING),
         defaultValue: [],
+      },
+      language: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "English",
+      },
+      estimatedCompletionTime: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "1 Day",
       },
     },
     {

@@ -32,6 +32,13 @@ module.exports = {
         type: Sequelize.BOOLEAN,
         defaultValue: false,
       },
+      reviewerId: {
+        type: Sequelize.UUID,
+        references: {
+          model: "Users",
+          key: "id",
+        },
+      },
       creatorUserId: {
         type: Sequelize.UUID,
         references: {
