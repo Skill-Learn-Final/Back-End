@@ -2,6 +2,12 @@ const { getUserRole } = require("./getUserRole");
 const jwt = require("jsonwebtoken");
 const db = require("../database/models");
 
+const checkRole = (usersRoles, allowed) => {
+  if (typeof allowed === "string") return usersRoles.includes(allowed);
+
+  return allowed.some((role) => usersRoles.includes(role));
+};
+
 function authenticate(role) {
   return async (req, res, next) => {
     const possibleUser = await db.User.findOne({
@@ -12,11 +18,11 @@ function authenticate(role) {
       const secret = process.env.JWT_SECRET + possibleUser.passwordHash;
       try {
         const data = jwt.verify(req.cookies.access_token, secret);
-        if (!data.roles.includes(role)) {
+        if (!checkRole(data.roles, role)) {
           return res.status(401).send("Forbidden");
         }
         req.user = possibleUser;
-        req.role = data.role;
+        req.roles = data.roles;
         return next();
       } catch (err) {
         return res.status(401).send(err);

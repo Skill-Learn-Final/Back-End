@@ -3,6 +3,7 @@ const db = require("../database/models");
 const { DataTypes, UniqueConstraintError, Op, where } = require("sequelize");
 const path = require("path");
 const fs = require("fs");
+const { Roles } = require("../utils/constants");
 
 // Course
 const createCourse = async (req, res, next) => {
@@ -240,6 +241,15 @@ const getCourseList = async (req, res, next) => {
   try {
     const { status } = req.query;
 
+    const user = req.user;
+    const roles = req.roles;
+
+    let userFilter = {};
+
+    if (roles.includes(Roles.CREATOR)) {
+      userFilter = { creatorUserId: user.id };
+    }
+
     const filter =
       status === "published"
         ? { isPublished: true }
@@ -253,7 +263,7 @@ const getCourseList = async (req, res, next) => {
 
     const courses = await db.Course.findAll({
       include: ["chapters", "categories"],
-      where: filter,
+      where: { ...filter, ...userFilter },
     });
     res.status(200).json({
       success: true,
@@ -282,12 +292,12 @@ const getCourseListUnderReview = async (req, res, next) => {
 
 const getCourseListsByReviewer = async (req, res, next) => {
   try {
+    const user = req.user;
+
     const courses = await db.Course.findAll({
       include: ["reviewer", "creator", "categories"],
       where: {
-        reviewerId: {
-          [Op.ne]: null,
-        },
+        reviewerId: user.id,
         isReviewed: false,
         isPublished: true,
       },

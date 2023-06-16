@@ -30,6 +30,7 @@ const { Roles } = require("../utils/constants");
 
 const commentRouter = require("./comment");
 const ratingRouter = require("./rating");
+const { getRelatedCourses } = require("../controllers/recommendation");
 
 const router = express.Router();
 
@@ -39,14 +40,23 @@ router.post(
   upload.single("coursePoster"),
   createCourse
 );
-router.get("/", getCourseList);
+router.get(
+  "/",
+  authenticate([Roles.ADMIN, Roles.REVIEWER, Roles.CREATOR]),
+  getCourseList
+);
 router.get("/live-courses", getAllLiveCourses);
 router.get("/under-review", getCourseListUnderReview);
-router.get("/byReviewer", getCourseListsByReviewer);
+router.get(
+  "/byReviewer",
+  authenticate(Roles.REVIEWER),
+  getCourseListsByReviewer
+);
 router.get("/stream/:lessonId", streamVideo);
 router.get("/:courseId", getCourse);
 router.delete("/:courseId", deleteCourse);
 router.put("/:courseId", upload.single("coursePoster"), updateCourse);
+router.get("/:courseId/related", getRelatedCourses);
 
 router.use("/:courseId/comments", commentRouter);
 router.use("/:courseId/ratings", ratingRouter);
