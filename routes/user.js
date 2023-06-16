@@ -9,6 +9,9 @@ const {
   approveProfileVerificationRequest,
   rejectProfileVerificationRequest,
   getProfileVerificationRequestByUser,
+  getUserInfo,
+  updateUser,
+  changePassword,
 } = require("../controllers/user");
 
 const upload = require("../middleware/upload");
@@ -18,6 +21,7 @@ const router = express.Router();
 router.post("/", createUser);
 router.get("/", getUserList);
 router.delete("/:id", deleteUser);
+router.get("/:id", getUserInfo);
 
 router.post(
   "/profile-verification",
@@ -38,5 +42,8 @@ router.put(
   "/profile-verification/:id/reject",
   rejectProfileVerificationRequest
 );
+
+router.put("/:id", upload.single("profilePicture"), updateUser);
+router.post("/change-password/:id", changePassword);
 
 module.exports = router;

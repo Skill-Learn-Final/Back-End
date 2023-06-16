@@ -268,6 +268,134 @@ const getProfileVerificationRequestList = async (req, res, next) => {
   }
 };
 
+// get user info
+
+const getUserInfo = async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const user = await db.User.findOne({
+      where: { id: id },
+    });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const userInfo = {
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      profilePicture: user.profilePicture,
+      balance: user.balance,
+      // passwordHash: user.passwordHash,
+      emailConfirmed: user.emailConfirmed,
+    };
+    res.status(200).json(userInfo);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// update fields
+const updateUser = async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const possibleUser = await db.User.findOne({ where: { id: id } });
+    const { firstName, lastName, profilePicture } = req.body;
+    // if (req.file) {
+    possibleUser.profilePicture = `${req.protocol}://${req.hostname}:8080/uploads/${req.file.filename}`;
+    // }
+    possibleUser.firstName = firstName;
+    possibleUser.lastName = lastName;
+
+    await possibleUser.save();
+    // const {
+    //   id1,
+    //   balance,
+    //   email,
+    //   firstName1,
+    //   lastName1,
+    //   roles,
+    //   profilePicture1,
+    // } = possibleUser;
+    // const payload = {
+    //   id1,
+    //   balance,
+    //   email,
+    //   firstName1,
+    //   lastName1,
+    //   roles: roles.map((r) => r.role),
+    //   profilePicture1,
+    // };
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "User fields updated successfully.",
+      // user: payload,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// password
+const changePassword = async (req, res, next) => {
+  const { oldPassword, newPassword } = req.body;
+  const possibleUser = await db.User.findOne({
+    where: { id: req.params.id },
+  });
+
+  if (!possibleUser) {
+    return res.status(404).json({ error: "User not found" });
+  }
+  try {
+    crypto.pbkdf2(
+      oldPassword,
+      possibleUser.passwordSalt,
+      310000,
+      32,
+      "sha256",
+      async function (err, hashedPassword) {
+        if (err) {
+          console.log(err);
+          return next(err);
+        }
+        if (
+          !crypto.timingSafeEqual(possibleUser.passwordHash, hashedPassword)
+        ) {
+          return res.status(401).json({ error: "Incorrect old password" });
+        }
+
+        const salt = crypto.randomBytes(16);
+        crypto.pbkdf2(
+          newPassword,
+          salt,
+          310000,
+          32,
+          "sha256",
+          async function (err, newHashedPassword) {
+            if (err) {
+              console.log(err);
+              return next(err);
+            }
+            try {
+              await possibleUser.update({
+                passwordHash: newHashedPassword,
+                passwordSalt: salt,
+              });
+              res.status(200).json({
+                success: true,
+                message: "Password changed successfully",
+              });
+            } catch (error) {
+              return res.status(StatusCodes.BAD_REQUEST).json(error.message);
+            }
+          }
+        );
+      }
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createUser,
   getUserList,
@@ -278,4 +406,7 @@ module.exports = {
   rejectProfileVerificationRequest,
   getProfileVerificationRequestList,
   getProfileVerificationRequestByUser,
+  changePassword,
+  updateUser,
+  getUserInfo,
 };
