@@ -1,0 +1,46 @@
+const request = require("supertest");
+const app = require("../server");
+const db = require("../database/models");
+require("dotenv").config();
+const jwt = require("jsonwebtoken");
+
+describe("GET /category", () => {
+  let token;
+
+  beforeAll(async () => {
+    // await db.sequelize.sync({ force: true }); // sync the test database
+    const user = await db.User.create({
+      username: "testuser",
+      password: "testpassword",
+    });
+    token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
+    await db.Category.bulkCreate([
+      {
+        name: "category1",
+        description: "description1",
+      },
+      {
+        name: "category2",
+        description: "description2",
+      },
+    ]);
+  });
+
+//   afterAll(async () => {
+//     await db.sequelize.close(); // close the database connection
+//   });
+
+  it("should return a list of categories", async () => {
+    const response = await request(app)
+      .get("/category")
+      .set("Authorization", `Bearer ${token}`);
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: expect.any(Number),
+        name: expect.any(String),
+        description: expect.any(String),
+      })
+    ]));
+  });
+});

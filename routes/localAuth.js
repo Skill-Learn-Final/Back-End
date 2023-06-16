@@ -76,7 +76,6 @@ passport.use(
 // });
 
 // // Handle Local Login
-
 router.post("/login", async (req, res, next) => {
   try {
     const possibleUser = await db.User.findOne({
@@ -84,60 +83,52 @@ router.post("/login", async (req, res, next) => {
       include: ["roles"],
     });
     if (possibleUser) {
-      crypto.pbkdf2(
-        req.body.password,
-        possibleUser.passwordSalt,
-        310000,
-        32,
-        "sha256",
-        async function (err, hashedPassword) {
-          if (err) {
-            return err.message;
+      const hashedPassword = await new Promise((resolve, reject) => {
+        crypto.pbkdf2(
+          req.body.password,
+          possibleUser.passwordSalt,
+          310000,
+          32,
+          "sha256",
+          (err, hashedPassword) => {
+            if (err) reject(err);
+            resolve(hashedPassword);
           }
-          if (
-            !crypto.timingSafeEqual(possibleUser.passwordHash, hashedPassword)
-          ) {
-            res
-              .status(StatusCodes.UNAUTHORIZED)
-              .json("Incorrect Email or Password");
-          }
-          if (possibleUser.emailConfirmed === false) {
-            res.status(StatusCodes.UNAUTHORIZED).send({
-              message: "You need to confirm your email before continuing ",
-              id: possibleUser.id,
-            });
-          }
-          const {
-            id,
-            balance,
-            email,
-            firstName,
-            lastName,
-            roles,
-            profilePicture,
-          } = possibleUser;
-          const payload = {
-            id,
-            balance,
-            email,
-            firstName,
-            lastName,
-            roles: roles.map((r) => r.role),
-            profilePicture,
-          };
-          const secret = process.env.JWT_SECRET + possibleUser.passwordHash;
+        );
+      });
+      if (!crypto.timingSafeEqual(possibleUser.passwordHash, hashedPassword)) {
+        res
+          .status(StatusCodes.UNAUTHORIZED)
+          .json("Incorrect Email or Password");
+      }
+      if (possibleUser.emailConfirmed === false) {
+        res.status(StatusCodes.UNAUTHORIZED).send({
+          message: "You need to confirm your email before continuing ",
+          id: possibleUser.id,
+        });
+      }
+      const { id, balance, email, firstName, lastName, roles, profilePicture } =
+        possibleUser;
+      const payload = {
+        id,
+        balance,
+        email,
+        firstName,
+        lastName,
+        roles: roles.map((r) => r.role),
+        profilePicture,
+      };
+      const secret = process.env.JWT_SECRET + possibleUser.passwordHash;
 
-          const token = jwt.sign(payload, secret, { expiresIn: "1d" });
-          res
-            .cookie("access_token", token, {
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-            })
-            .cookie("userId", payload.id)
-            .status(200)
-            .send(payload);
-        }
-      );
+      const token = jwt.sign(payload, secret, { expiresIn: "1d" });
+      res
+        .cookie("access_token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+        })
+        .cookie("userId", payload.id)
+        .status(200)
+        .send({ token });
     } else {
       res
         .status(StatusCodes.NOT_FOUND)
@@ -145,7 +136,6 @@ router.post("/login", async (req, res, next) => {
     }
   } catch (error) {}
 });
-
 // router.post(
 //   "/login",
 //   passport.authenticate("local", { session: false }),
@@ -157,55 +147,71 @@ router.post("/login", async (req, res, next) => {
 
 // Handle Local Register
 router.post("/register", async (req, res, next) => {
-  var salt = crypto.randomBytes(16);
-  crypto.pbkdf2(
-    req.body.password,
-    salt,
-    310000,
-    32,
-    "sha256",
-    async function (err, hashedPassword) {
-      if (err) {
-        return next(err);
-      }
-      try {
-        const createdUser = await db.User.create({
-          // username: req.body.username,
-          email: req.body.email,
-          firstName: req.body.fullName.split(" ")[0],
-          lastName: req.body.fullName.split(" ")[1],
-          passwordHash: hashedPassword,
-          passwordSalt: salt,
-        });
-        // await createdUser.save();
+  const { email, fullName, password, role } = req.body;
 
-        const userRole = await db.UserRole.create({
-          userId: createdUser.id,
-          role: req.body.role ?? Roles.LEARNER,
-        });
+  // Check if email and password are provided
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
 
-        // await userRole.save();
-        await createdUser.addRoles(userRole);
-
-        const secret = process.env.JWT_SECRET + createdUser.passwordHash;
-        const payload = {
-          email: createdUser.email,
-          id: createdUser.id,
-          role: req.body.role,
-        };
-        const token = jwt.sign(payload, secret, { expiresIn: "1d" });
-        const link = `http://localhost:8080/api/local/confirm/${createdUser.id}/${token}`;
-        sendEmailConfirmEmail(createdUser.email, createdUser.firstName, link)
-          .then((response) => res.send(response.message))
-          .catch((error) => {
-            res.send(error.message);
-          });
-      } catch (err) {
-        console.log(err);
-        return res.status(409).json(err);
-      }
+  try {
+    // Check if user already exists
+    const existingUser = await db.User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already exists" });
     }
-  );
+
+    // Hash the password
+    const salt = crypto.randomBytes(16);
+    const hashedPassword = await new Promise((resolve, reject) => {
+      crypto.pbkdf2(password, salt, 310000, 32, "sha256", (err, key) => {
+        if (err) reject(err);
+        resolve(key);
+      });
+    });
+
+    // Create the user
+    const createdUser = await db.User.create({
+      email,
+      firstName: fullName.split(" ")[0],
+      lastName: fullName.split(" ")[1],
+      passwordHash: hashedPassword,
+      passwordSalt: salt,
+    });
+
+    // Add the user to the UserRoles table
+    const userRole = await db.UserRole.create({
+      userId: createdUser.id,
+      role: role ?? Roles.LEARNER,
+    });
+    await createdUser.addRoles(userRole);
+
+    // Generate a JWT token
+    const payload = {
+      email: createdUser.email,
+      id: createdUser.id,
+      role: role ?? Roles.LEARNER,
+    };
+    const secret = process.env.JWT_SECRET + createdUser.passwordHash;
+    const token = jwt.sign(payload, secret, { expiresIn: "1d" });
+
+    // Send confirmation email
+    const link = `http://localhost:8080/api/local/confirm/${createdUser.id}/${token}`;
+    sendEmailConfirmEmail(createdUser.email, createdUser.firstName, link)
+      .then((response) => console.log(response.message))
+      .catch((error) => console.log(error.message));
+
+    // Return the newly created user
+    res.status(200).json({
+      email: createdUser.email,
+      firstName: createdUser.firstName,
+      lastName: createdUser.lastName,
+      roles: [role ?? Roles.LEARNER],
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 router.post("/reset_password/send_email", async (req, res, next) => {
@@ -268,21 +274,27 @@ router.post("/reset_password/changePassword", async (req, res, next) => {
 });
 
 router.get("/confirm/:id/:token", async (req, res, next) => {
-  const confirmUser = await db.User.findOne({ where: { id: req.params.id } });
-  if (confirmUser) {
-    if (confirmUser.emailConfirmed === true) {
-      res.redirect("http://localhost:3000/login");
-    } else {
-      const secret = process.env.JWT_SECRET + confirmUser.passwordHash;
-      try {
-        jwt.verify(req.params.token, secret);
+  try {
+    const confirmUser = await db.User.findOne({ where: { id: req.params.id } });
+    if (confirmUser) {
+      if (confirmUser.emailConfirmed === true) {
+        res.redirect("http://localhost:3000/login");
+      } else {
+        const secret = process.env.JWT_SECRET + confirmUser.passwordHash;
+        try {
+          jwt.verify(req.params.token, secret);
+        } catch (err) {
+          console.log(err.message);
+          res.status(500).send("jwt expired");
+          return;
+        }
         await confirmUser.update({ emailConfirmed: true });
-      } catch (err) {
-        console.log(err.message);
+        res.redirect("http://localhost:3000/login");
       }
-      res.redirect("http://localhost:3000/login");
+    } else {
+      res.status(500).send("Link Expired");
     }
-  } else {
+  } catch {
     res.status(500).send("Link Expired");
   }
 });

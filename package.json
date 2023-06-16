@@ -4,8 +4,10 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "devStart": "nodemon server.js",
-        "start": "nodemon index.js"
+        "test":"jest",
+        "start":"node server_start.js",
+        "devStart": "nodemon server_start.js",
+        "notifStart": "nodemon index.js"
     },
     "author": "",
     "license": "ISC",

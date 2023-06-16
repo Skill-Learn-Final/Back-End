@@ -43,9 +43,7 @@ router.put(
   rejectProfileVerificationRequest
 );
 
-// updates
 router.put("/:id", upload.single("profilePicture"), updateUser);
-// router.put("/:id", updateUser);
 router.post("/change-password/:id", changePassword);
 
 module.exports = router;

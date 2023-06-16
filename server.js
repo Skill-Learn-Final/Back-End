@@ -72,13 +72,11 @@ app.use("/api/courses", course);
 app.use("/api/categories", category);
 app.use("/api/users", userRouter);
 
-console.log("routes registered: ");
+// console.log("routes registered: ");
 // app.use("/logout", logout);
 
 app.get(["/", "/home"], (req, res) => {
   res.send("This is the landing page");
 });
 
-app.listen(8080, () => {
-  console.log("Server is running on port 8080");
-});
+module.exports = app;
