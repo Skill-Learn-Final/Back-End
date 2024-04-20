@@ -43,7 +43,7 @@ app.use(express.json({ extended: false }));
 
 // Setup CORS
 
-app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
+app.use(cors({ credentials: true, origin: "*" }));
 // setup cookie parser
 app.use(cookieParser());
 
