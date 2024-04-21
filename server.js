@@ -35,6 +35,7 @@ const setHeaders = (res, path) => {
   res.setHeader("Content-Type", mimeType);
   res.setHeader("Content-Disposition", "attachment");
 };
+const allowedOrigins = ["https://localhost:3000/", "https://skill-learn.netlify.app/"];
 
 // app.use(cors());
 
@@ -43,7 +44,16 @@ app.use(express.json({ extended: false }));
 
 // Setup CORS
 
-app.use(cors({ credentials: true, origin: "*" }));
+app.use(cors({ 
+  credentials: true, 
+origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Origin not allowed by CORS"));
+        }
+    }
+}));
 // setup cookie parser
 app.use(cookieParser());
 
