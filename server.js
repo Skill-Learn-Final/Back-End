@@ -44,7 +44,7 @@ app.use(express.json({ extended: false }));
 
 app.use(cors({ 
   credentials: true, 
-  origin: "https://skill-learn.netlify.app/"
+  origin: "https://skill-learn.netlify.app"
 }));
 // setup cookie parser
 app.use(cookieParser());
